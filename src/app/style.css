@@ -432,17 +432,13 @@ body {
   font-weight: 700;
   cursor: crosshair;
   background: var(--cell-color);
-  transition: filter 0.06s, transform 0.06s;
+  transition: background-color 0.06s;
   position: relative;
 }
 
 .ge-cell:hover {
-  filter: brightness(1.25);
+  background-color: color-mix(in srgb, var(--hover-color) 35%, var(--cell-color));
   z-index: 1;
-}
-
-.ge-cell:active {
-  transform: scale(0.92);
 }
 
 .ge-empty {
@@ -766,4 +762,31 @@ body {
 ::selection {
   background: var(--accent);
   color: #1a1408;
+}
+
+/* ── Dimensions display ─────────────────────────────────────── */
+.dimensions-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  max-width: 380px;
+}
+
+.dim-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.dim-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
 }

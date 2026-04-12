@@ -86,6 +86,7 @@ export default function GridEditor({ grid, onGridChange }) {
         style={{
           gridTemplateColumns: `repeat(${cols}, 32px)`,
           gridTemplateRows: `repeat(${rows}, 32px)`,
+          '--hover-color': PIXEL_TYPES[activeType].color,
         }}
         onContextMenu={e => e.preventDefault()}
       >

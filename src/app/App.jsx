@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import GridEditor, { makeGrid } from './GridEditor'
 import Viewer from './Viewer'
 import ExportButton from './ExportButton'
@@ -28,6 +28,20 @@ export default function App() {
   const [renaming, setRenaming] = useState(null)
 
   const selected = characters[selectedIdx]
+
+  const usedDimensions = useMemo(() => {
+    let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity
+    grid.forEach((row, r) => row.forEach((v, c) => {
+      if (v !== 0) {
+        minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+        minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+      }
+    }))
+    if (minR === Infinity) return null
+    const w = Math.round(((maxC - minC + 1) * params.pixelSize) * 10) / 10
+    const h = Math.round(((maxR - minR + 1) * params.pixelSize) * 10) / 10
+    return { w, h }
+  }, [grid, params.pixelSize])
 
   // Pre-warm WASM
   useEffect(() => {
@@ -251,6 +265,12 @@ export default function App() {
                 </div>
               )}
             </div>
+            {usedDimensions && (
+              <div className="dimensions-display">
+                <span className="dim-label">Print size</span>
+                <span className="dim-value">{usedDimensions.w} × {usedDimensions.h} mm</span>
+              </div>
+            )}
           </div>
 
           <div className="viewer-pane">
