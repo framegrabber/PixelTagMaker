@@ -1,5 +1,5 @@
 import { getManifold } from './manifold.js'
-import { detectDirection, createKeyringLoop } from './keyringGeometry.js'
+import { createKeyringHole } from './keyringGeometry.js'
 import * as THREE from 'three'
 
 function isOn(grid, row, col) {
@@ -49,7 +49,7 @@ function createChamferedBlock(Manifold, ps, totalHeight, chamfer) {
  * Returns { manifoldMesh, threeGeometry } or null if grid is empty.
  */
 export async function generateMesh(grid, params) {
-  const { pixelSize = 4, pixelHeight = 2, thickness = 2, chamfer = 0.2 } = params
+  const { pixelSize = 4, pixelHeight = 2, thickness = 2, chamfer = 0, holeSize = 2 } = params
   const wasm = await getManifold()
   const { Manifold, CrossSection } = wasm
 
@@ -73,16 +73,13 @@ export async function generateMesh(grid, params) {
         parts.push(block)
       } else {
         // Raised (1) or Keyring (3): full height with chamfer
-        const block = createChamferedBlock(Manifold, pixelSize, totalHeight, chamfer)
+        let block = createChamferedBlock(Manifold, pixelSize, totalHeight, chamfer)
           .translate([x, y, 0])
-        parts.push(block)
-
         if (val === 3) {
-          const dir = detectDirection(grid, row, col)
-          const loop = createKeyringLoop(Manifold, pixelSize, totalHeight, dir)
-            .translate([x, y, 0])
-          parts.push(loop)
+          const hole = createKeyringHole(Manifold, pixelSize, totalHeight, holeSize, chamfer)
+          block = block.subtract(hole.translate([x, y, 0]))
         }
+        parts.push(block)
       }
     }
   }
