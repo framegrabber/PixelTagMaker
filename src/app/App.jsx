@@ -9,12 +9,30 @@ import defaultLib from '../core/defaultCharacters.json'
 
 const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, thickness: 2, chamfer: 0, holeSize: 2 }
 
+function encodeShare(name, grid, params) {
+  const payload = JSON.stringify({ name, grid, params })
+  // btoa needs binary string; handle unicode via encodeURIComponent
+  const b64 = btoa(encodeURIComponent(payload))
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function decodeShare(encoded) {
+  try {
+    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = decodeURIComponent(atob(b64))
+    return JSON.parse(payload)
+  } catch {
+    return null
+  }
+}
+
 export default function App() {
   const [characters, setCharacters] = useState(defaultLib.characters)
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [grid, setGrid] = useState(defaultLib.characters[0].grid)
   const [params, setParams] = useState(DEFAULT_PARAMS)
   const [showSettings, setShowSettings] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const [threeGeometry, setThreeGeometry] = useState(null)
   const [manifoldMesh, setManifoldMesh] = useState(null)
@@ -51,6 +69,25 @@ export default function App() {
         console.error('Manifold WASM failed to load:', err)
         setWasmError(err.message)
       })
+  }, [])
+
+  useEffect(() => {
+    const params_url = new URLSearchParams(window.location.search)
+    const encoded = params_url.get('share')
+    if (!encoded) return
+    const data = decodeShare(encoded)
+    if (!data?.grid) return
+    const newIdx = defaultLib.characters.length  // append after defaults
+    setCharacters(prev => {
+      // avoid duplicates if already loaded
+      if (prev.some(c => c.name === data.name && JSON.stringify(c.grid) === JSON.stringify(data.grid))) return prev
+      return [...prev, { name: data.name || 'shared', grid: data.grid }]
+    })
+    setSelectedIdx(characters.length)
+    setGrid(data.grid)
+    if (data.params) setParams(prev => ({ ...prev, ...data.params }))
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname)
   }, [])
 
   // Debounced mesh generation
@@ -156,6 +193,19 @@ export default function App() {
     setParams(prev => ({ ...prev, [key]: value }))
   }
 
+  async function handleShare() {
+    const encoded = encodeShare(selected?.name || 'untitled', grid, params)
+    const url = `${window.location.origin}${window.location.pathname}?share=${encoded}`
+    window.history.replaceState({}, '', `?share=${encoded}`)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // clipboard not available, URL is still in address bar
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="app">
       {/* Header */}
@@ -177,6 +227,13 @@ export default function App() {
               <polyline points="7 3 7 8 15 8" />
             </svg>
             Save
+          </button>
+          <button className="btn btn-ghost" onClick={handleShare}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            {copied ? 'Copied!' : 'Share'}
           </button>
           <ExportButton manifoldMesh={manifoldMesh} characterName={selected?.name} />
         </div>
