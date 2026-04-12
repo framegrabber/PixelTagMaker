@@ -1,0 +1,85 @@
+/**
+ * REFERENCE: Dark theme variables and grid editor styles from apc-invaders
+ *
+ * Proven color palette and component styles. Adapt as needed.
+ */
+
+:root {
+  --bg-primary: #141416;
+  --bg-secondary: #1a1a1e;
+  --bg-input: #222226;
+  --border: #2a2a2e;
+  --border-hover: #333;
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaa;
+  --text-muted: #666;
+  --accent: #4cc2ff;
+  --accent-hover: #38b0f0;
+  --danger: #e84535;
+}
+
+/* ── Grid Editor Cells ─────────────────────────────── */
+
+.ge-grid {
+  display: grid;
+  gap: 1px;
+  background: #111;
+  border: 1px solid var(--border-hover);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ge-cell {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.08s;
+}
+
+.ge-cell:hover {
+  filter: brightness(1.3);
+}
+
+.ge-cell-empty {
+  background-image: radial-gradient(circle, #333 1px, transparent 1px);
+  background-size: 50% 50%;
+  background-position: center;
+}
+
+/* ── Palette Buttons ───────────────────────────────── */
+
+.ge-palette {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ge-palette-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.ge-palette-btn:hover { border-color: #555; }
+.ge-palette-btn.active { border-color: var(--accent); }
+
+.ge-swatch {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--swatch);
+}
