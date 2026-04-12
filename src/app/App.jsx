@@ -103,10 +103,12 @@ export default function App() {
   }
 
   function addCharacter() {
-    const newChar = { name: `character ${characters.length + 1}`, grid: makeGrid(8, 8) }
+    const newIdx = characters.length
+    const newChar = { name: 'untitled', grid: makeGrid(8, 8) }
     setCharacters(prev => [...prev, newChar])
-    setSelectedIdx(characters.length)
+    setSelectedIdx(newIdx)
     setGrid(newChar.grid)
+    setRenaming(newIdx)
   }
 
   function deleteCharacter(idx) {
@@ -121,7 +123,7 @@ export default function App() {
   function renameCharacter(idx, name) {
     setCharacters(prev => {
       const copy = [...prev]
-      copy[idx] = { ...copy[idx], name }
+      copy[idx] = { ...copy[idx], name: name.trim() || 'untitled' }
       return copy
     })
     setRenaming(null)
@@ -202,11 +204,11 @@ export default function App() {
                 {renaming === i ? (
                   <input
                     className="char-rename"
-                    defaultValue={ch.name}
+                    defaultValue={ch.name === 'untitled' ? '' : ch.name}
                     autoFocus
-                    onBlur={e => renameCharacter(i, e.target.value || ch.name)}
+                    onBlur={e => renameCharacter(i, e.target.value)}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') renameCharacter(i, e.target.value || ch.name)
+                      if (e.key === 'Enter') renameCharacter(i, e.target.value)
                       if (e.key === 'Escape') setRenaming(null)
                     }}
                     onClick={e => e.stopPropagation()}
