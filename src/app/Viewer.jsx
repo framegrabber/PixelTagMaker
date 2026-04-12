@@ -31,12 +31,18 @@ export default function Viewer({ geometry, generating }) {
     controls.target.set(20, 15, 2)
     controls.update()
 
-    // Lights
-    const ambient = new THREE.AmbientLight('#8890a8', 0.9)
+    // CAD-style 3-point lighting
+    // Key light: bright, from upper-front-right
+    const keyLight = new THREE.DirectionalLight('#ffffff', 2.0)
+    keyLight.position.set(60, -40, 80)
+    scene.add(keyLight)
+    // Fill light: cooler, from left, reduces harsh shadows
+    const fillLight = new THREE.DirectionalLight('#c8d8ee', 0.6)
+    fillLight.position.set(-50, 20, 30)
+    scene.add(fillLight)
+    // Ambient: warm base so shadow faces aren't black
+    const ambient = new THREE.AmbientLight('#ffffff', 0.25)
     scene.add(ambient)
-    const dirLight = new THREE.DirectionalLight('#fff5e6', 1.2)
-    dirLight.position.set(30, -20, 50)
-    scene.add(dirLight)
 
     // Grid helper
     const gridHelper = new THREE.GridHelper(100, 20, '#222230', '#1a1a24')
@@ -100,10 +106,9 @@ export default function Viewer({ geometry, generating }) {
     }
 
     const material = new THREE.MeshStandardMaterial({
-      color: '#c8d4dc',
+      color: '#d2dce4',
       metalness: 0.0,
-      roughness: 0.75,
-      flatShading: true,
+      roughness: 0.65,
     })
 
     const mesh = new THREE.Mesh(geometry, material)

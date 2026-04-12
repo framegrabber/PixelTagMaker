@@ -112,9 +112,13 @@ export async function generateMesh(grid, params) {
     positions[i * 3 + 2] = vertProperties[i * numProp + 2]
   }
 
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(triVerts), 1))
+  const indexed = new THREE.BufferGeometry()
+  indexed.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  indexed.setIndex(new THREE.BufferAttribute(new Uint32Array(triVerts), 1))
+  // toNonIndexed duplicates vertices per triangle so no vertex is shared across
+  // different faces. computeVertexNormals then produces per-face (not averaged)
+  // normals — this is what gives clean hard edges in CAD-style shading.
+  const geometry = indexed.toNonIndexed()
   geometry.computeVertexNormals()
 
   // Clean up manifold objects
