@@ -23,8 +23,6 @@ export default function Viewer({ geometry, generating }) {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.1
     container.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -34,14 +32,11 @@ export default function Viewer({ geometry, generating }) {
     controls.update()
 
     // Lights
-    const ambient = new THREE.AmbientLight('#8890a8', 0.6)
+    const ambient = new THREE.AmbientLight('#8890a8', 0.9)
     scene.add(ambient)
-    const dirLight = new THREE.DirectionalLight('#fff5e6', 1.8)
+    const dirLight = new THREE.DirectionalLight('#fff5e6', 1.2)
     dirLight.position.set(30, -20, 50)
     scene.add(dirLight)
-    const fillLight = new THREE.DirectionalLight('#c8d4ff', 0.5)
-    fillLight.position.set(-20, 30, 20)
-    scene.add(fillLight)
 
     // Grid helper
     const gridHelper = new THREE.GridHelper(100, 20, '#222230', '#1a1a24')
@@ -104,12 +99,10 @@ export default function Viewer({ geometry, generating }) {
       return
     }
 
-    const material = new THREE.MeshPhysicalMaterial({
-      color: '#b8c8d8',
-      metalness: 0.15,
-      roughness: 0.45,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.4,
+    const material = new THREE.MeshStandardMaterial({
+      color: '#c8d4dc',
+      metalness: 0.0,
+      roughness: 0.75,
     })
 
     const mesh = new THREE.Mesh(geometry, material)
