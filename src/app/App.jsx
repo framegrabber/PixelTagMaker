@@ -7,7 +7,7 @@ import { getManifold } from '../core/manifold'
 import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import defaultLib from '../core/defaultCharacters.json'
 
-const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, thickness: 2, chamfer: 0, holeSize: 2 }
+const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, thickness: 2, chamfer: 0.3, holeSize: 2 }
 
 function encodeShare(name, grid, params) {
   const payload = JSON.stringify({ name, grid, params })
@@ -319,7 +319,7 @@ export default function App() {
                   <ParamSlider label="Pixel size" unit="mm" value={params.pixelSize} min={2} max={10} step={0.5} onChange={v => updateParam('pixelSize', v)} />
                   <ParamSlider label="Pixel height" unit="mm" value={params.pixelHeight} min={0.5} max={5} step={0.25} onChange={v => updateParam('pixelHeight', v)} />
                   <ParamSlider label="Thickness" unit="mm" value={params.thickness} min={1} max={5} step={0.25} onChange={v => updateParam('thickness', v)} />
-                  <ParamSlider label="Chamfer" unit="mm" value={params.chamfer} min={0} max={0.5} step={0.05} onChange={v => updateParam('chamfer', v)} />
+                  <ParamSlider label="Chamfer" unit="mm" value={params.chamfer} min={0} max={1} step={0.05} onChange={v => updateParam('chamfer', v)} />
                   <ParamSlider label="Hole size" unit="mm" value={params.holeSize} min={0.5} max={params.pixelSize * 0.9} step={0.1} onChange={v => updateParam('holeSize', v)} />
                 </div>
               )}
