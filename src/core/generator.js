@@ -92,7 +92,7 @@ export async function generateMesh(grid, params) {
     const diamond = new CrossSection([
       [[half, 0], [0, half], [-half, 0], [0, -half]]
     ])
-    const bridgeMesh = Manifold.extrude(diamond, totalHeight)
+    const bridgeMesh = Manifold.extrude(diamond, thickness)
       .translate([b.x * pixelSize, b.y * pixelSize, 0])
     parts.push(bridgeMesh)
   }
