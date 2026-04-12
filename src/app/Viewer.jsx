@@ -103,6 +103,7 @@ export default function Viewer({ geometry, generating }) {
       color: '#c8d4dc',
       metalness: 0.0,
       roughness: 0.75,
+      flatShading: true,
     })
 
     const mesh = new THREE.Mesh(geometry, material)
