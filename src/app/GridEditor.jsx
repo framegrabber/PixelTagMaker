@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PIXEL_TYPES } from '../core/pixelTypes'
 
-function makeGrid(rows, cols) {
+export function makeGrid(rows, cols) {
   return Array.from({ length: rows }, () => new Array(cols).fill(0))
 }
 
-function resizeGrid(grid, newRows, newCols) {
+export function resizeGrid(grid, newRows, newCols) {
   const result = makeGrid(newRows, newCols)
   const copyRows = Math.min(grid.length, newRows)
   const copyCols = Math.min(grid[0]?.length || 0, newCols)
@@ -15,7 +15,14 @@ function resizeGrid(grid, newRows, newCols) {
   return result
 }
 
-export { makeGrid, resizeGrid }
+function getBoundingBox(grid) {
+  let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity
+  grid.forEach((row, r) => row.forEach((v, c) => {
+    if (v !== 0) { minR = Math.min(minR, r); maxR = Math.max(maxR, r); minC = Math.min(minC, c); maxC = Math.max(maxC, c) }
+  }))
+  if (minR === Infinity) return null
+  return { minR, maxR, minC, maxC }
+}
 
 export default function GridEditor({ grid, onGridChange }) {
   const [activeType, setActiveType] = useState(1)
@@ -51,14 +58,52 @@ export default function GridEditor({ grid, onGridChange }) {
     painting.current = false
   }, [])
 
-  const handleResize = useCallback((newRows, newCols) => {
-    onGridChange(prev => resizeGrid(prev, newRows, newCols))
-  }, [onGridChange])
-
   const handleClear = useCallback(() => {
     onGridChange(() => makeGrid(rows, cols))
   }, [onGridChange, rows, cols])
 
+  // Edge control helpers
+  const addRowTop = useCallback(() => {
+    onGridChange(prev => [new Array(prev[0].length).fill(0), ...prev])
+  }, [onGridChange])
+
+  const removeRowTop = useCallback(() => {
+    onGridChange(prev => prev.length > 1 ? prev.slice(1) : prev)
+  }, [onGridChange])
+
+  const addRowBottom = useCallback(() => {
+    onGridChange(prev => [...prev, new Array(prev[0].length).fill(0)])
+  }, [onGridChange])
+
+  const removeRowBottom = useCallback(() => {
+    onGridChange(prev => prev.length > 1 ? prev.slice(0, -1) : prev)
+  }, [onGridChange])
+
+  const addColLeft = useCallback(() => {
+    onGridChange(prev => prev.map(row => [0, ...row]))
+  }, [onGridChange])
+
+  const removeColLeft = useCallback(() => {
+    onGridChange(prev => prev[0].length > 1 ? prev.map(row => row.slice(1)) : prev)
+  }, [onGridChange])
+
+  const addColRight = useCallback(() => {
+    onGridChange(prev => prev.map(row => [...row, 0]))
+  }, [onGridChange])
+
+  const removeColRight = useCallback(() => {
+    onGridChange(prev => prev[0].length > 1 ? prev.map(row => row.slice(0, -1)) : prev)
+  }, [onGridChange])
+
+  const trimGrid = useCallback(() => {
+    onGridChange(prev => {
+      const bb = getBoundingBox(prev)
+      if (!bb) return prev
+      return prev.slice(bb.minR, bb.maxR + 1).map(row => row.slice(bb.minC, bb.maxC + 1))
+    })
+  }, [onGridChange])
+
+  // Hotkeys 1-4
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
@@ -70,53 +115,79 @@ export default function GridEditor({ grid, onGridChange }) {
 
   return (
     <div className="grid-editor" onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}>
-      <div className="ge-controls">
-        <div className="ge-size">
-          <label>Grid</label>
-          <input
-            type="number" min={3} max={24} value={cols}
-            onChange={e => handleResize(rows, Math.max(3, Math.min(24, +e.target.value)))}
-          />
-          <span className="ge-times">&times;</span>
-          <input
-            type="number" min={3} max={24} value={rows}
-            onChange={e => handleResize(Math.max(3, Math.min(24, +e.target.value)), cols)}
-          />
-          <button className="btn-small btn-ghost" onClick={handleClear} title="Clear grid">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" />
-            </svg>
-          </button>
+      <div className="ge-grid-area">
+        {/* Top edge controls */}
+        <div className="ge-edge-row">
+          <div className="ge-edge-spacer" />
+          <div className="ge-edge-controls">
+            <button className="ge-edge-btn" onClick={addRowTop} title="Add row at top">+</button>
+            <button className="ge-edge-btn" onClick={removeRowTop} title="Remove top row">−</button>
+          </div>
+          <div className="ge-edge-spacer" />
+        </div>
+
+        {/* Middle row: left controls + grid + right controls */}
+        <div className="ge-edge-middle">
+          <div className="ge-edge-controls ge-edge-vert">
+            <button className="ge-edge-btn" onClick={addColLeft} title="Add column at left">+</button>
+            <button className="ge-edge-btn" onClick={removeColLeft} title="Remove left column">−</button>
+          </div>
+
+          <div
+            className="ge-grid"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, 32px)`,
+              gridTemplateRows: `repeat(${rows}, 32px)`,
+              '--hover-color': PIXEL_TYPES[activeType].color,
+            }}
+            onContextMenu={e => e.preventDefault()}
+          >
+            {grid.map((row, r) =>
+              row.map((val, c) => {
+                const pt = PIXEL_TYPES[val] || PIXEL_TYPES[0]
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    className={`ge-cell${val === 0 ? ' ge-empty' : ''} ge-type-${val}`}
+                    style={{ '--cell-color': pt.color }}
+                    onPointerDown={e => handlePointerDown(r, c, e)}
+                    onPointerEnter={() => handlePointerEnter(r, c)}
+                  >
+                    {pt.icon}
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="ge-edge-controls ge-edge-vert">
+            <button className="ge-edge-btn" onClick={addColRight} title="Add column at right">+</button>
+            <button className="ge-edge-btn" onClick={removeColRight} title="Remove right column">−</button>
+          </div>
+        </div>
+
+        {/* Bottom edge controls */}
+        <div className="ge-edge-row">
+          <div className="ge-edge-spacer" />
+          <div className="ge-edge-controls">
+            <button className="ge-edge-btn" onClick={addRowBottom} title="Add row at bottom">+</button>
+            <button className="ge-edge-btn" onClick={removeRowBottom} title="Remove bottom row">−</button>
+            <button className="ge-edge-btn ge-trim-btn" onClick={trimGrid} title="Shrink to used pixels">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+              </svg>
+            </button>
+            <button className="ge-edge-btn ge-clear-btn" onClick={handleClear} title="Clear grid">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2" />
+              </svg>
+            </button>
+          </div>
+          <div className="ge-edge-spacer" />
         </div>
       </div>
 
-      <div
-        className="ge-grid"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, 32px)`,
-          gridTemplateRows: `repeat(${rows}, 32px)`,
-          '--hover-color': PIXEL_TYPES[activeType].color,
-        }}
-        onContextMenu={e => e.preventDefault()}
-      >
-        {grid.map((row, r) =>
-          row.map((val, c) => {
-            const pt = PIXEL_TYPES[val] || PIXEL_TYPES[0]
-            return (
-              <div
-                key={`${r}-${c}`}
-                className={`ge-cell${val === 0 ? ' ge-empty' : ''} ge-type-${val}`}
-                style={{ '--cell-color': pt.color }}
-                onPointerDown={e => handlePointerDown(r, c, e)}
-                onPointerEnter={() => handlePointerEnter(r, c)}
-              >
-                {pt.icon}
-              </div>
-            )
-          })
-        )}
-      </div>
-
+      {/* Palette */}
       <div className="ge-palette">
         {PIXEL_TYPES.map(pt => (
           <button
@@ -131,7 +202,7 @@ export default function GridEditor({ grid, onGridChange }) {
         ))}
       </div>
 
-      <p className="ge-hint">Click to paint &middot; Right-click to erase</p>
+      <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 1–4 select type</p>
     </div>
   )
 }

@@ -363,50 +363,6 @@ body {
   gap: 12px;
 }
 
-.ge-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.ge-size {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ge-size label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: var(--font-display);
-}
-
-.ge-size input[type="number"] {
-  width: 48px;
-  padding: 4px 6px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  text-align: center;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.ge-size input[type="number"]:focus {
-  border-color: var(--accent);
-}
-
-.ge-times {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
 /* ── Grid cells ─────────────────────────────────────────────── */
 .ge-grid {
   display: grid;
@@ -511,6 +467,79 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ── Grid edge controls ─────────────────────────────────────── */
+.ge-grid-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.ge-edge-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.ge-edge-spacer {
+  flex: 1;
+}
+
+.ge-edge-middle {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.ge-edge-controls {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.ge-edge-vert {
+  flex-direction: column;
+  align-self: center;
+}
+
+.ge-edge-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.12s var(--ease);
+}
+
+.ge-edge-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+.ge-trim-btn,
+.ge-clear-btn {
+  color: var(--text-muted);
+}
+
+.ge-trim-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.ge-clear-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 /* ── Settings panel ─────────────────────────────────────────── */
