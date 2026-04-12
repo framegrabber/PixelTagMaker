@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { PIXEL_TYPES } from '../core/pixelTypes'
 
 function makeGrid(rows, cols) {
@@ -58,6 +58,15 @@ export default function GridEditor({ grid, onGridChange }) {
   const handleClear = useCallback(() => {
     onGridChange(() => makeGrid(rows, cols))
   }, [onGridChange, rows, cols])
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key >= '1' && e.key <= '4') setActiveType(+e.key - 1)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <div className="grid-editor" onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}>
