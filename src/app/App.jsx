@@ -7,7 +7,7 @@ import { getManifold } from '../core/manifold'
 import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import defaultLib from '../core/defaultCharacters.json'
 
-const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, baseHeight: 2, chamfer: 0.2 }
+const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, thickness: 2, chamfer: 0.2 }
 
 export default function App() {
   const [characters, setCharacters] = useState(defaultLib.characters)
@@ -245,7 +245,7 @@ export default function App() {
                 <div className="settings-grid">
                   <ParamSlider label="Pixel size" unit="mm" value={params.pixelSize} min={2} max={10} step={0.5} onChange={v => updateParam('pixelSize', v)} />
                   <ParamSlider label="Pixel height" unit="mm" value={params.pixelHeight} min={0.5} max={5} step={0.25} onChange={v => updateParam('pixelHeight', v)} />
-                  <ParamSlider label="Base height" unit="mm" value={params.baseHeight} min={1} max={5} step={0.25} onChange={v => updateParam('baseHeight', v)} />
+                  <ParamSlider label="Thickness" unit="mm" value={params.thickness} min={1} max={5} step={0.25} onChange={v => updateParam('thickness', v)} />
                   <ParamSlider label="Chamfer" unit="mm" value={params.chamfer} min={0} max={0.5} step={0.05} onChange={v => updateParam('chamfer', v)} />
                 </div>
               )}

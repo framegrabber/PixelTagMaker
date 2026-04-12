@@ -49,13 +49,13 @@ function createChamferedBlock(Manifold, ps, totalHeight, chamfer) {
  * Returns { manifoldMesh, threeGeometry } or null if grid is empty.
  */
 export async function generateMesh(grid, params) {
-  const { pixelSize = 4, pixelHeight = 2, baseHeight = 2, chamfer = 0.2 } = params
+  const { pixelSize = 4, pixelHeight = 2, thickness = 2, chamfer = 0.2 } = params
   const wasm = await getManifold()
   const { Manifold, CrossSection } = wasm
 
   const rows = grid.length
   const cols = grid[0]?.length || 0
-  const totalHeight = baseHeight + pixelHeight
+  const totalHeight = thickness + pixelHeight
   const parts = []
 
   for (let row = 0; row < rows; row++) {
@@ -68,7 +68,7 @@ export async function generateMesh(grid, params) {
 
       if (val === 2) {
         // Flat: base height only, no chamfer
-        const block = Manifold.cube([pixelSize, pixelSize, baseHeight])
+        const block = Manifold.cube([pixelSize, pixelSize, thickness])
           .translate([x, y, 0])
         parts.push(block)
       } else {
