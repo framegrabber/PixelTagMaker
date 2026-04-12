@@ -1,25 +1,34 @@
 /**
- * Create a keyring pixel: a full-height chamfered block with a centered
- * cylindrical through-hole. The hole diameter is `holeSize`, and if chamfer > 0
- * the hole entrance gets a flared chamfer matching the pixel edge chamfer.
+ * Returns a solid to SUBTRACT from a pixel block to create a keyring through-hole.
+ *
+ * Manifold.cylinder(height, rLow, rHigh, segments, center=false) goes from z=0 to z=height.
+ * The old code used center=true which only reached half the block height — this is the fix.
+ *
+ * Geometry (all in pixel-local coords, pixel occupies x∈[0,ps], y∈[0,ps], z∈[0,totalHeight]):
+ *   - Main shaft: full through-hole from z=-0.1 to z=totalHeight+0.1
+ *   - Top flare:  chamfer cone, holeR → holeR+chamfer over the top `chamfer` mm
+ *   - Bottom flare: inverted chamfer cone at the bottom opening
  */
 export function createKeyringHole(Manifold, pixelSize, totalHeight, holeSize, chamfer) {
   const holeR = holeSize / 2
   const cx = pixelSize / 2
   const cy = pixelSize / 2
+  const eps = 0.1 // overlap to avoid boolean coplanar artifacts
 
-  // Main through-hole cylinder (slightly taller for boolean clean cut)
-  const holeCyl = Manifold.cylinder(totalHeight + 0.2, holeR, holeR, 48, true)
-    .translate([cx, cy, 0])
+  // Main shaft — NOT centered, translated down by eps so it starts below z=0
+  const shaft = Manifold.cylinder(totalHeight + 2 * eps, holeR, holeR, 48)
+    .translate([cx, cy, -eps])
 
-  // If chamfer > 0, add a flared entrance at the top (cone frustum)
-  // The cone goes from holeR at z=(totalHeight - chamfer) to holeR+chamfer at z=totalHeight
-  let result = holeCyl
-  if (chamfer > 0) {
-    const flare = Manifold.cylinder(chamfer + 0.05, holeR + chamfer, holeR, 48, true)
-      .translate([cx, cy, totalHeight - chamfer])
-    result = Manifold.union([holeCyl, flare])
-  }
+  if (chamfer <= 0) return shaft
 
-  return result
+  // Top chamfer: cone from r=holeR at z=totalHeight-chamfer to r=holeR+chamfer at z=totalHeight
+  // The extra eps height ensures it breaks cleanly through the block top face
+  const topFlare = Manifold.cylinder(chamfer + eps, holeR, holeR + chamfer, 48)
+    .translate([cx, cy, totalHeight - chamfer])
+
+  // Bottom chamfer: inverted cone from r=holeR+chamfer at z=0 to r=holeR at z=chamfer
+  const bottomFlare = Manifold.cylinder(chamfer + eps, holeR + chamfer, holeR, 48)
+    .translate([cx, cy, -eps])
+
+  return Manifold.union([shaft, topFlare, bottomFlare])
 }
