@@ -26,6 +26,7 @@ function getBoundingBox(grid) {
 
 export default function GridEditor({ grid, onGridChange }) {
   const [activeType, setActiveType] = useState(1)
+  const [hoverCell, setHoverCell] = useState(null)
   const painting = useRef(false)
   const paintType = useRef(1)
 
@@ -43,19 +44,49 @@ export default function GridEditor({ grid, onGridChange }) {
     })
   }, [onGridChange])
 
+  // Paint a 2×2 block anchored at (r, c) as top-left
+  const setQuad = useCallback((r, c, value) => {
+    onGridChange(prev => {
+      const next = prev.map(row => [...row])
+      let changed = false
+      for (let dr = 0; dr <= 1; dr++) {
+        for (let dc = 0; dc <= 1; dc++) {
+          if (next[r + dr]?.[c + dc] !== undefined && next[r + dr][c + dc] !== value) {
+            next[r + dr][c + dc] = value
+            changed = true
+          }
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [onGridChange])
+
   const handlePointerDown = useCallback((r, c, e) => {
     e.preventDefault()
     painting.current = true
-    paintType.current = e.button === 2 ? 0 : activeType
-    setCell(r, c, paintType.current)
-  }, [activeType, setCell])
+    const isErase = e.button === 2
+    paintType.current = isErase ? 0 : activeType
+    if (!isErase && activeType === 4) {
+      setQuad(r, c, 4)
+    } else {
+      setCell(r, c, paintType.current)
+    }
+  }, [activeType, setCell, setQuad])
 
   const handlePointerEnter = useCallback((r, c) => {
-    if (painting.current) setCell(r, c, paintType.current)
-  }, [setCell])
+    if (activeType === 4) setHoverCell({ r, c })
+    if (painting.current) {
+      if (paintType.current === 4) {
+        setQuad(r, c, 4)
+      } else {
+        setCell(r, c, paintType.current)
+      }
+    }
+  }, [activeType, setCell, setQuad])
 
   const handlePointerUp = useCallback(() => {
     painting.current = false
+    setHoverCell(null)
   }, [])
 
   const handleClear = useCallback(() => {
@@ -103,15 +134,20 @@ export default function GridEditor({ grid, onGridChange }) {
     })
   }, [onGridChange])
 
-  // Hotkeys 1-4
+  // Hotkeys 1-5
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if (e.key >= '1' && e.key <= '4') setActiveType(+e.key - 1)
+      if (e.key >= '1' && e.key <= '5') setActiveType(+e.key - 1)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
+
+  // Clear hover when switching away from type 4
+  useEffect(() => {
+    if (activeType !== 4) setHoverCell(null)
+  }, [activeType])
 
   return (
     <div className="grid-editor" onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}>
@@ -138,18 +174,21 @@ export default function GridEditor({ grid, onGridChange }) {
             style={{
               gridTemplateColumns: `repeat(${cols}, 32px)`,
               gridTemplateRows: `repeat(${rows}, 32px)`,
-              '--hover-color': PIXEL_TYPES[activeType].color,
+              '--hover-color': activeType === 4 ? 'transparent' : PIXEL_TYPES[activeType]?.color,
             }}
             onContextMenu={e => e.preventDefault()}
           >
             {grid.map((row, r) =>
               row.map((val, c) => {
                 const pt = PIXEL_TYPES[val] || PIXEL_TYPES[0]
+                const inQuad = activeType === 4 && hoverCell &&
+                  r >= hoverCell.r && r <= hoverCell.r + 1 &&
+                  c >= hoverCell.c && c <= hoverCell.c + 1
                 return (
                   <div
                     key={`${r}-${c}`}
-                    className={`ge-cell${val === 0 ? ' ge-empty' : ''} ge-type-${val}`}
-                    style={{ '--cell-color': pt.color }}
+                    className={`ge-cell${val === 0 ? ' ge-empty' : ''} ge-type-${val}${inQuad ? ' ge-quad-hover' : ''}`}
+                    style={{ '--cell-color': pt.color, '--quad-color': PIXEL_TYPES[4].color }}
                     onPointerDown={e => handlePointerDown(r, c, e)}
                     onPointerEnter={() => handlePointerEnter(r, c)}
                   >
@@ -202,7 +241,7 @@ export default function GridEditor({ grid, onGridChange }) {
         ))}
       </div>
 
-      <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 1–4 select type</p>
+      <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 1–5 select type</p>
     </div>
   )
 }
