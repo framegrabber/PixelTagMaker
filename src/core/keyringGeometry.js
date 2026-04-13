@@ -32,3 +32,26 @@ export function createKeyringHole(Manifold, pixelSize, totalHeight, holeSize, ch
 
   return Manifold.union([shaft, topFlare, bottomFlare])
 }
+
+/**
+ * Returns a through-hole solid centered at (0, 0) for use with the 2×2 keyring type.
+ * The caller translates this to the meeting point of the 4 cells.
+ * Identical geometry to createKeyringHole but without the pixelSize/2 offset.
+ */
+export function createBigKeyringHole(Manifold, totalHeight, holeSize, chamfer) {
+  const holeR = holeSize / 2
+  const eps = 0.1
+
+  const shaft = Manifold.cylinder(totalHeight + 2 * eps, holeR, holeR, 48)
+    .translate([0, 0, -eps])
+
+  if (chamfer <= 0) return shaft
+
+  const topFlare = Manifold.cylinder(chamfer + eps, holeR, holeR + chamfer, 48)
+    .translate([0, 0, totalHeight - chamfer])
+
+  const bottomFlare = Manifold.cylinder(chamfer + eps, holeR + chamfer, holeR, 48)
+    .translate([0, 0, -eps])
+
+  return Manifold.union([shaft, topFlare, bottomFlare])
+}
