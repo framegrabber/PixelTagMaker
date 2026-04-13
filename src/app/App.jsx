@@ -7,7 +7,7 @@ import { getManifold } from '../core/manifold'
 import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import defaultLib from '../core/defaultCharacters.json'
 
-const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 2, thickness: 2, chamfer: 0.3, holeSize: 2 }
+const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
 
 function encodeShare(name, grid, params) {
   const payload = JSON.stringify({ name, grid, params })
