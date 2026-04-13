@@ -1,12 +1,11 @@
 # PixelTagMaker
 
-**[→ Open in browser](https://framegrabber.github.io/PixelTagMaker/)**
+[framegrabber.github.io/PixelTagMaker](https://framegrabber.github.io/PixelTagMaker/)
 
 Draw pixel art on a grid, get a 3D-printable STL keyring.
 
-Each pixel becomes a raised block. Paint with four pixel types, tweak the dimensions, export — done.
 
-![PixelTagMaker screenshot](https://framegrabber.github.io/PixelTagMaker/screenshot.png)
+![PixelTagMaker screenshot](./screenshot.jpg)
 
 ## Pixel types
 
