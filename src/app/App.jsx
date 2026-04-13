@@ -47,6 +47,26 @@ export default function App() {
   const genCounter = useRef(0)
   const [renaming, setRenaming] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [splitPct, setSplitPct] = useState(45)
+
+  function handleSplitDrag(e) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startPct = splitPct
+    const workspace = e.currentTarget.parentElement
+    const workspaceW = workspace.clientWidth
+
+    function onMove(ev) {
+      const delta = ev.clientX - startX
+      setSplitPct(Math.max(25, Math.min(75, startPct + (delta / workspaceW) * 100)))
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
 
   const selected = characters[selectedIdx]
   const characterColors = useMemo(() => colorForCharacter(selected?.name), [selected?.name])
@@ -312,7 +332,7 @@ export default function App() {
 
         {/* Editor + Viewer */}
         <section className="workspace">
-          <div className="editor-pane">
+          <div className="editor-pane" style={{ width: `${splitPct}%` }}>
             {wasmError && (
               <div className="wasm-error">
                 Failed to load 3D engine: {wasmError}
@@ -353,6 +373,8 @@ export default function App() {
               </div>
             )}
           </div>
+
+          <div className="split-handle" onPointerDown={handleSplitDrag} />
 
           <div className="viewer-pane">
             <Viewer
