@@ -398,6 +398,11 @@ body {
   z-index: 1;
 }
 
+.ge-quad-hover {
+  background-color: color-mix(in srgb, var(--quad-color) 45%, var(--cell-color));
+  z-index: 1;
+}
+
 .ge-empty {
   background-image: radial-gradient(circle, #2a2a30 1px, transparent 1px);
   background-size: 50% 50%;
