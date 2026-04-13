@@ -46,6 +46,7 @@ export default function App() {
   const genTimer = useRef(null)
   const genCounter = useRef(0)
   const [renaming, setRenaming] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const selected = characters[selectedIdx]
   const characterColors = useMemo(() => colorForCharacter(selected?.name), [selected?.name])
@@ -250,16 +251,24 @@ export default function App() {
       {/* Main content */}
       <div className="main">
         {/* Sidebar */}
-        <aside className="sidebar">
+        <aside className={`sidebar${sidebarOpen ? '' : ' collapsed'}`}>
           <div className="sidebar-header">
-            <h2>Characters</h2>
-            <button className="btn-icon" onClick={addCharacter} title="New character">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} title={sidebarOpen ? 'Collapse' : 'Expand'}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                style={{ transform: sidebarOpen ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }}>
+                <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
+            {sidebarOpen && <h2>Characters</h2>}
+            {sidebarOpen && (
+              <button className="btn-icon" onClick={addCharacter} title="New character">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            )}
           </div>
-          <ul className="char-list">
+          {sidebarOpen && <ul className="char-list">
             {characters.map((ch, i) => (
               <li
                 key={i}
@@ -298,7 +307,7 @@ export default function App() {
                 )}
               </li>
             ))}
-          </ul>
+          </ul>}
         </aside>
 
         {/* Editor + Viewer */}
