@@ -5,6 +5,7 @@ import ExportButton from './ExportButton'
 import { generateMesh } from '../core/generator'
 import { getManifold } from '../core/manifold'
 import { openJsonFile, saveJsonFile } from '../core/fileIO'
+import { colorForCharacter } from '../core/colorUtils'
 import defaultLib from '../core/defaultCharacters.json'
 
 const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
@@ -34,7 +35,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const [threeGeometry, setThreeGeometry] = useState(null)
+  const [geometries, setGeometries] = useState({ raised: null, flat: null })
+  const geometriesRef = useRef({ raised: null, flat: null })
   const [manifoldMesh, setManifoldMesh] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [wasmReady, setWasmReady] = useState(false)
@@ -46,6 +48,7 @@ export default function App() {
   const [renaming, setRenaming] = useState(null)
 
   const selected = characters[selectedIdx]
+  const characterColors = useMemo(() => colorForCharacter(selected?.name), [selected?.name])
 
   const usedDimensions = useMemo(() => {
     let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity
@@ -103,12 +106,17 @@ export default function App() {
       try {
         const result = await generateMesh(grid, params)
         if (id !== genCounter.current) return
+        const old = geometriesRef.current
+        old.raised?.dispose()
+        old.flat?.dispose()
         if (result) {
-          if (threeGeometry) threeGeometry.dispose()
-          setThreeGeometry(result.threeGeometry)
+          const newGeo = { raised: result.raisedGeometry, flat: result.flatGeometry }
+          geometriesRef.current = newGeo
+          setGeometries(newGeo)
           setManifoldMesh(result.mesh)
         } else {
-          setThreeGeometry(null)
+          geometriesRef.current = { raised: null, flat: null }
+          setGeometries({ raised: null, flat: null })
           setManifoldMesh(null)
         }
       } catch (err) {
@@ -301,7 +309,12 @@ export default function App() {
                 Failed to load 3D engine: {wasmError}
               </div>
             )}
-            <GridEditor grid={grid} onGridChange={handleGridChange} />
+            <GridEditor
+              grid={grid}
+              onGridChange={handleGridChange}
+              raisedColor={characterColors.raised}
+              flatColor={characterColors.flat}
+            />
 
             {/* Settings */}
             <div className="settings-section">
@@ -333,7 +346,13 @@ export default function App() {
           </div>
 
           <div className="viewer-pane">
-            <Viewer geometry={threeGeometry} generating={generating} />
+            <Viewer
+              raisedGeometry={geometries.raised}
+              flatGeometry={geometries.flat}
+              raisedColor={characterColors.raised}
+              flatColor={characterColors.flat}
+              generating={generating}
+            />
             {!wasmReady && !wasmError && (
               <div className="wasm-loading">
                 <div className="viewer-spinner" />

@@ -24,7 +24,7 @@ function getBoundingBox(grid) {
   return { minR, maxR, minC, maxC }
 }
 
-export default function GridEditor({ grid, onGridChange }) {
+export default function GridEditor({ grid, onGridChange, raisedColor, flatColor }) {
   const [activeType, setActiveType] = useState(1)
   const [hoverCell, setHoverCell] = useState(null)
   const painting = useRef(false)
@@ -174,13 +174,19 @@ export default function GridEditor({ grid, onGridChange }) {
             style={{
               gridTemplateColumns: `repeat(${cols}, 32px)`,
               gridTemplateRows: `repeat(${rows}, 32px)`,
-              '--hover-color': activeType === 4 ? 'transparent' : PIXEL_TYPES[activeType]?.color,
+              '--hover-color': activeType === 4 ? 'transparent'
+                : activeType === 1 ? (raisedColor || PIXEL_TYPES[1].color)
+                : activeType === 2 ? (flatColor || PIXEL_TYPES[2].color)
+                : PIXEL_TYPES[activeType]?.color,
             }}
             onContextMenu={e => e.preventDefault()}
           >
             {grid.map((row, r) =>
               row.map((val, c) => {
                 const pt = PIXEL_TYPES[val] || PIXEL_TYPES[0]
+                const cellColor = val === 1 ? (raisedColor || pt.color)
+                  : val === 2 ? (flatColor || pt.color)
+                  : pt.color
                 const inQuad = activeType === 4 && hoverCell &&
                   r >= hoverCell.r && r <= hoverCell.r + 1 &&
                   c >= hoverCell.c && c <= hoverCell.c + 1
@@ -188,7 +194,7 @@ export default function GridEditor({ grid, onGridChange }) {
                   <div
                     key={`${r}-${c}`}
                     className={`ge-cell${val === 0 ? ' ge-empty' : ''} ge-type-${val}${inQuad ? ' ge-quad-hover' : ''}`}
-                    style={{ '--cell-color': pt.color, '--quad-color': PIXEL_TYPES[4].color }}
+                    style={{ '--cell-color': cellColor, '--quad-color': PIXEL_TYPES[4].color }}
                     onPointerDown={e => handlePointerDown(r, c, e)}
                     onPointerEnter={() => handlePointerEnter(r, c)}
                   >
@@ -228,17 +234,22 @@ export default function GridEditor({ grid, onGridChange }) {
 
       {/* Palette */}
       <div className="ge-palette">
-        {PIXEL_TYPES.map(pt => (
+        {PIXEL_TYPES.map(pt => {
+          const swatchColor = pt.value === 1 ? (raisedColor || pt.color)
+            : pt.value === 2 ? (flatColor || pt.color)
+            : pt.color
+          return (
           <button
             key={pt.value}
             className={`ge-pal-btn${activeType === pt.value ? ' active' : ''}`}
-            style={{ '--swatch': pt.color }}
+            style={{ '--swatch': swatchColor }}
             onClick={() => setActiveType(pt.value)}
           >
             <span className="ge-swatch" />
             <span className="ge-pal-label">{pt.label}</span>
           </button>
-        ))}
+          )
+        })}
       </div>
 
       <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 1–5 select type</p>

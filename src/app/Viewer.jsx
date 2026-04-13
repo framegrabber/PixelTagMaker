@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
-export default function Viewer({ geometry, generating }) {
+export default function Viewer({ raisedGeometry, flatGeometry, raisedColor = '#4cc2ff', flatColor = '#2a8ab8', generating }) {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
-  const meshRef = useRef(null)
+  const raisedMeshRef = useRef(null)
+  const flatMeshRef = useRef(null)
   const hasInitialFit = useRef(false)
   const rafRef = useRef(null)
 
@@ -32,19 +33,15 @@ export default function Viewer({ geometry, generating }) {
     controls.update()
 
     // CAD-style 3-point lighting
-    // Key light: bright, from upper-front-right
     const keyLight = new THREE.DirectionalLight('#ffffff', 2.0)
     keyLight.position.set(60, -40, 80)
     scene.add(keyLight)
-    // Fill light: cooler, from left, reduces harsh shadows
     const fillLight = new THREE.DirectionalLight('#c8d8ee', 0.6)
     fillLight.position.set(-50, 20, 30)
     scene.add(fillLight)
-    // Ambient: warm base so shadow faces aren't black
     const ambient = new THREE.AmbientLight('#ffffff', 0.25)
     scene.add(ambient)
 
-    // Grid helper
     const gridHelper = new THREE.GridHelper(100, 20, '#222230', '#1a1a24')
     gridHelper.rotation.x = Math.PI / 2
     scene.add(gridHelper)
@@ -87,45 +84,53 @@ export default function Viewer({ geometry, generating }) {
     }
   }, [])
 
-  // Update mesh when geometry changes
+  // Rebuild meshes when geometry changes
   useEffect(() => {
     const ctx = sceneRef.current
     if (!ctx) return
 
-    // Remove old mesh
-    if (meshRef.current) {
-      ctx.scene.remove(meshRef.current)
-      meshRef.current.geometry.dispose()
-      meshRef.current.material.dispose()
-      meshRef.current = null
+    for (const ref of [raisedMeshRef, flatMeshRef]) {
+      if (ref.current) {
+        ctx.scene.remove(ref.current)
+        ref.current.geometry.dispose()
+        ref.current.material.dispose()
+        ref.current = null
+      }
     }
 
-    if (!geometry) {
+    if (!raisedGeometry && !flatGeometry) {
       hasInitialFit.current = false
       return
     }
 
-    const material = new THREE.MeshStandardMaterial({
-      color: '#d2dce4',
-      metalness: 0.0,
-      roughness: 0.65,
-    })
+    const makeMat = (color) => new THREE.MeshStandardMaterial({ color, metalness: 0.0, roughness: 0.65 })
 
-    const mesh = new THREE.Mesh(geometry, material)
-    ctx.scene.add(mesh)
-    meshRef.current = mesh
+    if (raisedGeometry) {
+      raisedMeshRef.current = new THREE.Mesh(raisedGeometry, makeMat(raisedColor))
+      ctx.scene.add(raisedMeshRef.current)
+    }
+    if (flatGeometry) {
+      flatMeshRef.current = new THREE.Mesh(flatGeometry, makeMat(flatColor))
+      ctx.scene.add(flatMeshRef.current)
+    }
 
-    // Auto-fit camera on first geometry
     if (!hasInitialFit.current) {
       hasInitialFit.current = true
-      fitCamera(ctx.camera, ctx.controls, geometry)
+      fitCamera(ctx.camera, ctx.controls, raisedGeometry || flatGeometry)
     }
-  }, [geometry])
+  }, [raisedGeometry, flatGeometry]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update material colors when character changes without re-generating geometry
+  useEffect(() => {
+    if (raisedMeshRef.current) raisedMeshRef.current.material.color.set(raisedColor)
+    if (flatMeshRef.current) flatMeshRef.current.material.color.set(flatColor)
+  }, [raisedColor, flatColor])
 
   function handleFitCamera() {
     const ctx = sceneRef.current
-    if (!ctx || !meshRef.current) return
-    fitCamera(ctx.camera, ctx.controls, meshRef.current.geometry)
+    const geo = raisedMeshRef.current?.geometry || flatMeshRef.current?.geometry
+    if (!ctx || !geo) return
+    fitCamera(ctx.camera, ctx.controls, geo)
   }
 
   return (
