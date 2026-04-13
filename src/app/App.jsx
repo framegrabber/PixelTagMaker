@@ -48,17 +48,40 @@ export default function App() {
   const [renaming, setRenaming] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [splitPct, setSplitPct] = useState(45)
+  const workspaceRef = useRef(null)
+
+  // Minimum editor width driven by grid column count:
+  //   ge-grid: cols*32px cells + (cols-1)*1px gaps + 2*2px border
+  //   ge-edge-vert buttons: (22px + 3px gap) × 2 sides
+  //   editor-pane padding: 24px × 2
+  const editorMinPx = useMemo(() => {
+    const cols = grid[0]?.length || 0
+    if (cols === 0) return 320
+    const gridW = cols * 32 + (cols - 1) + 4
+    return gridW + (22 + 3) * 2 + 48
+  }, [grid])
+
+  // When grid gains/loses columns, bump the split so content stays visible
+  useEffect(() => {
+    const ws = workspaceRef.current
+    if (!ws) return
+    const wsW = ws.clientWidth
+    if (wsW === 0) return
+    const minPct = (editorMinPx / wsW) * 100
+    setSplitPct(prev => Math.max(prev, minPct))
+  }, [editorMinPx])
 
   function handleSplitDrag(e) {
     e.preventDefault()
+    const ws = workspaceRef.current || e.currentTarget.parentElement
+    const wsW = ws.clientWidth
     const startX = e.clientX
     const startPct = splitPct
-    const workspace = e.currentTarget.parentElement
-    const workspaceW = workspace.clientWidth
+    const minPct = (editorMinPx / wsW) * 100
 
     function onMove(ev) {
       const delta = ev.clientX - startX
-      setSplitPct(Math.max(25, Math.min(75, startPct + (delta / workspaceW) * 100)))
+      setSplitPct(Math.max(minPct, Math.min(75, startPct + (delta / wsW) * 100)))
     }
     function onUp() {
       document.removeEventListener('pointermove', onMove)
@@ -331,7 +354,7 @@ export default function App() {
         </aside>
 
         {/* Editor + Viewer */}
-        <section className="workspace">
+        <section className="workspace" ref={workspaceRef}>
           <div className="editor-pane" style={{ width: `${splitPct}%` }}>
             {wasmError && (
               <div className="wasm-error">
