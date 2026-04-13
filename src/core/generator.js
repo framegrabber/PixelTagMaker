@@ -1,5 +1,5 @@
 import { getManifold } from './manifold.js'
-import { createKeyringHole } from './keyringGeometry.js'
+import { createKeyringHole, createBigKeyringHole } from './keyringGeometry.js'
 import * as THREE from 'three'
 
 function isOn(grid, row, col) {
@@ -58,10 +58,32 @@ export async function generateMesh(grid, params) {
   const totalHeight = thickness + pixelHeight
   const parts = []
 
+  // Pre-pass: detect valid 2×2 groups of type-4 cells.
+  // A cell (r, c) is the top-left of a valid group if all four cells are type 4.
+  const quadGroups = []
+  const processedByQuad = new Set()
+
+  for (let row = 0; row < rows - 1; row++) {
+    for (let col = 0; col < cols - 1; col++) {
+      if (
+        grid[row][col] === 4 && grid[row][col + 1] === 4 &&
+        grid[row + 1][col] === 4 && grid[row + 1][col + 1] === 4
+      ) {
+        quadGroups.push({ r: row, c: col })
+        processedByQuad.add(`${row},${col}`)
+        processedByQuad.add(`${row},${col + 1}`)
+        processedByQuad.add(`${row + 1},${col}`)
+        processedByQuad.add(`${row + 1},${col + 1}`)
+      }
+    }
+  }
+
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const val = grid[row][col]
       if (val === 0) continue
+      // Type-4 cells in a valid 2×2 group are handled below
+      if (processedByQuad.has(`${row},${col}`)) continue
 
       const x = col * pixelSize
       const y = (rows - 1 - row) * pixelSize
@@ -72,7 +94,7 @@ export async function generateMesh(grid, params) {
           .translate([x, y, 0])
         parts.push(block)
       } else {
-        // Raised (1) or Keyring (3): full height with chamfer
+        // Raised (1), Keyring (3), or orphaned type-4: full height with chamfer
         let block = createChamferedBlock(Manifold, pixelSize, totalHeight, chamfer)
           .translate([x, y, 0])
         if (val === 3) {
@@ -82,6 +104,28 @@ export async function generateMesh(grid, params) {
         parts.push(block)
       }
     }
+  }
+
+  // Build 2×2 quad group solids.
+  // The hole is centered at the meeting point of the 4 inner corners:
+  //   meetX = (c + 1) * pixelSize
+  //   meetY = (rows - 1 - r) * pixelSize  (top edge of row r = bottom edge of row r+1)
+  for (const { r, c } of quadGroups) {
+    const meetX = (c + 1) * pixelSize
+    const meetY = (rows - 1 - r) * pixelSize
+
+    let combined = null
+    for (const [dr, dc] of [[0, 0], [0, 1], [1, 0], [1, 1]]) {
+      const bx = (c + dc) * pixelSize
+      const by = (rows - 1 - (r + dr)) * pixelSize
+      const blk = createChamferedBlock(Manifold, pixelSize, totalHeight, chamfer)
+        .translate([bx, by, 0])
+      combined = combined ? combined.add(blk) : blk
+    }
+
+    const hole = createBigKeyringHole(Manifold, totalHeight, holeSize, chamfer)
+      .translate([meetX, meetY, 0])
+    parts.push(combined.subtract(hole))
   }
 
   // Diagonal bridges
@@ -115,9 +159,6 @@ export async function generateMesh(grid, params) {
   const indexed = new THREE.BufferGeometry()
   indexed.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   indexed.setIndex(new THREE.BufferAttribute(new Uint32Array(triVerts), 1))
-  // toNonIndexed duplicates vertices per triangle so no vertex is shared across
-  // different faces. computeVertexNormals then produces per-face (not averaged)
-  // normals — this is what gives clean hard edges in CAD-style shading.
   const geometry = indexed.toNonIndexed()
   geometry.computeVertexNormals()
 
