@@ -30,13 +30,13 @@ function findDiagonalBridges(grid) {
   return bridges
 }
 
-function createChamferedBlock(Manifold, ps, totalHeight, chamfer) {
-  if (chamfer <= 0 || chamfer >= totalHeight * 0.5) {
-    return Manifold.cube([ps, ps, totalHeight])
+function createChamferedBlock(Manifold, ps, height, chamfer) {
+  if (chamfer <= 0 || chamfer >= height * 0.5) {
+    return Manifold.cube([ps, ps, height])
   }
-  const base = Manifold.cube([ps, ps, totalHeight - chamfer])
+  const base = Manifold.cube([ps, ps, height - chamfer])
   const cap = Manifold.cube([ps - 2 * chamfer, ps - 2 * chamfer, chamfer])
-    .translate([chamfer, chamfer, totalHeight - chamfer])
+    .translate([chamfer, chamfer, height - chamfer])
   return Manifold.hull([base, cap])
 }
 
@@ -61,27 +61,32 @@ function partsToThreeGeometry(parts, Manifold) {
 }
 
 /**
- * Split a Manifold solid into three zones relative to a circular recess and recombine:
- *   inner zone  → translated down by recessDepth
- *   fillet zone → cut by the curved fillet surface
- *   outer zone  → unchanged
- * innerCyl, outerCyl, filletCutter must be full-height columns centered on the recess.
- * Returns a new Manifold. Caller is responsible for deleting the returned value.
- * Does NOT delete geom, innerCyl, outerCyl, or filletCutter.
+ * Split a Manifold solid at outerCyl: inner zone (inside) is translated down by
+ * recessDepth and clipped at z=0; outer zone (outside) is unchanged.
+ * Does NOT delete geom, outerCyl, or floorClip. Caller deletes return value.
  */
-function applyRecess(geom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold) {
-  const inner = geom.intersect(innerCyl).translate([0, 0, -recessDepth])
-  const filletZoneRaw = geom.intersect(outerCyl).subtract(innerCyl)
-  const filletZone = filletZoneRaw.subtract(filletCutter)
-  filletZoneRaw.delete()
+function applySimpleRecess(geom, outerCyl, recessDepth, floorClip, Manifold) {
+  const innerRaw = geom.intersect(outerCyl).translate([0, 0, -recessDepth])
+  const inner = innerRaw.intersect(floorClip)
+  innerRaw.delete()
   const outer = geom.subtract(outerCyl)
-  const result = Manifold.union([inner, filletZone, outer])
+  const result = Manifold.union([inner, outer])
   inner.delete()
-  filletZone.delete()
   outer.delete()
   return result
 }
 
+/**
+ * Generate a Manifold mesh from a 2D pixel grid in coaster mode.
+ * Returns { mesh, raisedGeometry, flatGeometry } or null if grid is empty.
+ *
+ * Two-layer approach:
+ *   baseTiles  — ps×ps×thickness tile per non-empty pixel; gets the filleted recess
+ *                applied to its surface. Rendered as flatGeometry (background colour).
+ *   raisedArt  — chamfered block of height=pixelHeight sitting atop each type-1 pixel
+ *                at Z=thickness; gets a clean split at outerRadius (no fillet on tops).
+ *                Rendered as raisedGeometry (accent colour).
+ */
 export async function generateCoaster(grid, params) {
   const {
     pixelSize: ps = 6,
@@ -90,16 +95,17 @@ export async function generateCoaster(grid, params) {
     chamfer = 0.3,
     recessDiameter = 70,
     recessDepth = 1.5,
-    filletRadius = 3,
+    recessOffsetX = 0,
+    recessOffsetY = 0,
   } = params
-  const fr = Math.min(filletRadius, recessDepth) // fillet can't exceed recess depth
+  // fillet equals recess depth, clamped so innerRadius stays > 1mm
+  const fr = Math.min(recessDepth, recessDiameter / 2 - 1)
 
   const wasm = await getManifold()
   const { Manifold, CrossSection } = wasm
 
   const rows = grid.length
   const cols = grid[0]?.length || 0
-  const totalHeight = thickness + pixelHeight
 
   // Bounding box of non-empty pixels
   let minR = rows, maxR = -1, minC = cols, maxC = -1
@@ -117,14 +123,13 @@ export async function generateCoaster(grid, params) {
   const bboxH = (maxR - minR + 1) * ps
   const originX = minC * ps
   const originY = (rows - 1 - maxR) * ps
-  const cx = originX + bboxW / 2
-  const cy = originY + bboxH / 2
+  const cx = originX + bboxW / 2 + recessOffsetX
+  const cy = originY + bboxH / 2 + recessOffsetY
 
-  // Base plate
-  const basePlate = Manifold.cube([bboxW, bboxH, thickness]).translate([originX, originY, 0])
-
-  const raisedParts = []
-  const flatParts = []
+  // Base tiles: one ps×ps×thickness block per non-empty pixel
+  // Raised art: chamfered block of pixelHeight placed atop each type-1 pixel
+  const baseTiles = []
+  const raisedArt = []
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -132,43 +137,38 @@ export async function generateCoaster(grid, params) {
       if (val === 0 || val > 2) continue
       const x = c * ps
       const y = (rows - 1 - r) * ps
-      if (val === 2) {
-        flatParts.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
-      } else {
-        raisedParts.push(
-          createChamferedBlock(Manifold, ps, totalHeight, chamfer).translate([x, y, 0])
+      baseTiles.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
+      if (val === 1) {
+        raisedArt.push(
+          createChamferedBlock(Manifold, ps, pixelHeight, chamfer).translate([x, y, thickness])
         )
       }
     }
   }
 
-  // Diagonal bridges
+  // Diagonal bridges go into baseTiles (base height, mandatory for manifold output)
   const bridges = findDiagonalBridges(grid)
   const bridgeW = ps * 0.3
   const half = bridgeW / 2
   for (const b of bridges) {
     const diamond = new CrossSection([[[half, 0], [0, half], [-half, 0], [0, -half]]])
-    raisedParts.push(
+    baseTiles.push(
       Manifold.extrude(diamond, thickness).translate([b.x * ps, b.y * ps, 0])
     )
   }
 
-  // --- Recess geometry ---
-  const SEGS = 128  // circle smoothness for inner/outer cylinders
-  const N = 16      // steps for fillet arc hull
+  if (baseTiles.length === 0) return null
+
+  const SEGS = 128
+  const N = 16
   const innerRadius = recessDiameter / 2 - fr
   const outerRadius = recessDiameter / 2
-  const bigH = totalHeight * 4  // tall enough to split all geometry
+  const bigH = (thickness + pixelHeight) * 4
 
-  // Full-height splitting cylinders
-  const innerCyl = Manifold.cylinder(bigH, innerRadius, innerRadius, SEGS)
-    .translate([cx, cy, -bigH / 2])
-  const outerCyl = Manifold.cylinder(bigH, outerRadius, outerRadius, SEGS)
-    .translate([cx, cy, -bigH / 2])
-
-  // Fillet cutter: hull of arc discs + floor disc for clean subtraction
-  // Arc center is at (innerRadius, thickness) in (r, Z) space.
-  // Disc i: r = innerRadius + fr*sin(i/N * π/2), Z = thickness - fr*cos(i/N * π/2)
+  // --- Filleted recess on base tiles ---
+  // Fillet cutter: hull of arc discs tracing quarter-circle
+  // Arc center at (innerRadius, thickness); disc i at:
+  //   r = innerRadius + fr*sin(t*π/2),  Z = thickness - fr*cos(t*π/2)
   const arcDiscs = []
   for (let i = 0; i <= N; i++) {
     const t = i / N
@@ -179,68 +179,47 @@ export async function generateCoaster(grid, params) {
   const filletCutter = Manifold.hull(arcDiscs)
   for (const d of arcDiscs) d.delete()
 
-  // Clip box covering everything at z >= 0 (removes sub-floor geometry from inner zone translation)
-  const floorClip = Manifold.cube([bboxW + recessDiameter * 2, bboxH + recessDiameter * 2, totalHeight * 2])
-    .translate([originX - recessDiameter, originY - recessDiameter, 0])
-
-  // Apply recess to raised pixel geometry
-  let raisedGeom = null, processedRaised = null
-  if (raisedParts.length > 0) {
-    raisedGeom = Manifold.union(raisedParts)
-    const raisedRaw = applyRecess(raisedGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
-    raisedGeom.delete()
-    processedRaised = raisedRaw.intersect(floorClip)
-    raisedRaw.delete()
-  }
-
-  // Apply recess to flat pixel geometry
-  let flatGeom = null, processedFlat = null
-  if (flatParts.length > 0) {
-    flatGeom = Manifold.union(flatParts)
-    const flatRaw = applyRecess(flatGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
-    flatGeom.delete()
-    processedFlat = flatRaw.intersect(floorClip)
-    flatRaw.delete()
-  }
-
-  floorClip.delete()
-
-  // Apply recess to base plate: subtract the inner cylinder at recessDepth + fillet cutter
   const recessVol = Manifold.cylinder(recessDepth, innerRadius, innerRadius, SEGS)
     .translate([cx, cy, thickness - recessDepth])
-  const baseMinusInner = basePlate.subtract(recessVol)
+  const baseUnion = Manifold.union(baseTiles)
+  const baseMinusInner = baseUnion.subtract(recessVol)
   recessVol.delete()
+  baseUnion.delete()
   const processedBase = baseMinusInner.subtract(filletCutter)
   baseMinusInner.delete()
-
-  // Clean up splitting tools
-  innerCyl.delete()
-  outerCyl.delete()
   filletCutter.delete()
+
+  // --- Simple recess on raised art (cut at outerRadius, no fillet on pixel tops) ---
+  let processedRaised = null
+  if (raisedArt.length > 0) {
+    const outerCyl = Manifold.cylinder(bigH, outerRadius, outerRadius, SEGS)
+      .translate([cx, cy, -bigH / 2])
+    const floorClip = Manifold.cube(
+      [bboxW + recessDiameter * 2, bboxH + recessDiameter * 2, (thickness + pixelHeight) * 2]
+    ).translate([originX - recessDiameter, originY - recessDiameter, 0])
+    const raisedUnion = Manifold.union(raisedArt)
+    processedRaised = applySimpleRecess(raisedUnion, outerCyl, recessDepth, floorClip, Manifold)
+    raisedUnion.delete()
+    outerCyl.delete()
+    floorClip.delete()
+  }
 
   // Three.js geometries for two-tone rendering
   const raisedGeometry = processedRaised
     ? partsToThreeGeometry([processedRaised], Manifold)
     : null
-  const flatAndBase = []
-  if (processedFlat) flatAndBase.push(processedFlat)
-  flatAndBase.push(processedBase)
-  const flatGeometry = partsToThreeGeometry(flatAndBase, Manifold)
+  const flatGeometry = partsToThreeGeometry([processedBase], Manifold)
 
   // Combined STL mesh
-  const allForMesh = []
+  const allForMesh = [processedBase]
   if (processedRaised) allForMesh.push(processedRaised)
-  if (processedFlat) allForMesh.push(processedFlat)
-  allForMesh.push(processedBase)
   const combined = allForMesh.length === 1 ? allForMesh[0] : Manifold.union(allForMesh)
   const mesh = combined.getMesh()
 
   // Cleanup
-  for (const p of [...raisedParts, ...flatParts]) p.delete()
-  basePlate.delete()
-  if (processedRaised) processedRaised.delete()
-  if (processedFlat) processedFlat.delete()
+  for (const p of [...baseTiles, ...raisedArt]) p.delete()
   processedBase.delete()
+  if (processedRaised) processedRaised.delete()
   if (allForMesh.length > 1) combined.delete()
 
   return { mesh, raisedGeometry, flatGeometry }
