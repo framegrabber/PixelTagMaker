@@ -176,25 +176,34 @@ export async function generateCoaster(grid, params) {
     const discZ = thickness - fr * Math.cos(t * Math.PI / 2)
     arcDiscs.push(Manifold.cylinder(0.001, discR, discR, SEGS).translate([cx, cy, discZ]))
   }
-  arcDiscs.push(Manifold.cylinder(0.001, innerRadius, innerRadius, SEGS).translate([cx, cy, 0]))
   const filletCutter = Manifold.hull(arcDiscs)
   for (const d of arcDiscs) d.delete()
+
+  // Clip box covering everything at z >= 0 (removes sub-floor geometry from inner zone translation)
+  const floorClip = Manifold.cube([bboxW + recessDiameter * 2, bboxH + recessDiameter * 2, totalHeight * 2])
+    .translate([originX - recessDiameter, originY - recessDiameter, 0])
 
   // Apply recess to raised pixel geometry
   let raisedGeom = null, processedRaised = null
   if (raisedParts.length > 0) {
     raisedGeom = Manifold.union(raisedParts)
-    processedRaised = applyRecess(raisedGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
+    const raisedRaw = applyRecess(raisedGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
     raisedGeom.delete()
+    processedRaised = raisedRaw.intersect(floorClip)
+    raisedRaw.delete()
   }
 
   // Apply recess to flat pixel geometry
   let flatGeom = null, processedFlat = null
   if (flatParts.length > 0) {
     flatGeom = Manifold.union(flatParts)
-    processedFlat = applyRecess(flatGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
+    const flatRaw = applyRecess(flatGeom, innerCyl, outerCyl, filletCutter, recessDepth, Manifold)
     flatGeom.delete()
+    processedFlat = flatRaw.intersect(floorClip)
+    flatRaw.delete()
   }
+
+  floorClip.delete()
 
   // Apply recess to base plate: subtract the inner cylinder at recessDepth + fillet cutter
   const recessVol = Manifold.cylinder(recessDepth, innerRadius, innerRadius, SEGS)
