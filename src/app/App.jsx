@@ -9,7 +9,7 @@ import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import { colorForCharacter } from '../core/colorUtils'
 import defaultLib from '../core/defaultCharacters.json'
 
-const KEYRING_DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
+const KEYRING_DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.75, thickness: 2, chamfer: 0.2, holeSize: 2 }
 const COASTER_DEFAULT_PARAMS = { pixelSize: 8, pixelHeight: 1, thickness: 4, chamfer: 0.3, recessDiameter: 70, recessDepth: 1.5, recessOffsetX: 0, recessOffsetY: 0 }
 
 function encodeShare(name, grid, params, mode) {
@@ -428,7 +428,7 @@ export default function App() {
               {showSettings && (
                 <div className="settings-grid">
                   <ParamSlider label="Pixel size" unit="mm" value={params.pixelSize} min={2} max={20} step={0.5} onChange={v => updateParam('pixelSize', v)} />
-                  <ParamSlider label="Pixel height" unit="mm" value={params.pixelHeight} min={0.5} max={5} step={0.25} onChange={v => updateParam('pixelHeight', v)} />
+                  <ParamSlider label="Pixel height" unit="mm" value={params.pixelHeight} min={0.75} max={5} step={0.25} onChange={v => updateParam('pixelHeight', v)} />
                   <ParamSlider label="Thickness" unit="mm" value={params.thickness} min={1} max={5} step={0.25} onChange={v => updateParam('thickness', v)} />
                   <ParamSlider label="Chamfer" unit="mm" value={params.chamfer} min={0} max={1} step={0.05} onChange={v => updateParam('chamfer', v)} />
                   {mode === 'keyring' && (
@@ -438,8 +438,8 @@ export default function App() {
                     <>
                       <ParamSlider label="Recess diameter" unit="mm" value={params.recessDiameter} min={40} max={100} step={1} onChange={v => updateParam('recessDiameter', v)} />
                       <ParamSlider label="Recess depth" unit="mm" value={params.recessDepth} min={0.5} max={4} step={0.1} onChange={v => updateParam('recessDepth', v)} />
-                      <ParamSlider label="Recess X" unit="mm" value={params.recessOffsetX ?? 0} min={-50} max={50} step={1} onChange={v => updateParam('recessOffsetX', v)} />
-                      <ParamSlider label="Recess Y" unit="mm" value={params.recessOffsetY ?? 0} min={-50} max={50} step={1} onChange={v => updateParam('recessOffsetY', v)} />
+                      <ParamSlider label="Recess left/right" unit="mm" value={params.recessOffsetX ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetX', v)} />
+                      <ParamSlider label="Recess up/down" unit="mm" value={params.recessOffsetY ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetY', v)} />
                     </>
                   )}
                 </div>
