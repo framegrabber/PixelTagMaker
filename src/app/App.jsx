@@ -406,8 +406,11 @@ export default function App() {
                   {mode === 'coaster' && (
                     <>
                       <ParamSlider label="Recess diameter" unit="mm" value={params.recessDiameter} min={40} max={100} step={1} onChange={v => updateParam('recessDiameter', v)} />
-                      <ParamSlider label="Recess depth" unit="mm" value={params.recessDepth} min={0.5} max={4} step={0.1} onChange={v => updateParam('recessDepth', v)} />
-                      <ParamSlider label="Fillet radius" unit="mm" value={params.filletRadius} min={1} max={8} step={0.1} onChange={v => updateParam('filletRadius', v)} />
+                      <ParamSlider label="Recess depth" unit="mm" value={params.recessDepth} min={0.5} max={4} step={0.1} onChange={v => {
+                        updateParam('recessDepth', v)
+                        if (params.filletRadius > v) updateParam('filletRadius', v)
+                      }} />
+                      <ParamSlider label="Fillet radius" unit="mm" value={params.filletRadius} min={1} max={params.recessDepth} step={0.1} onChange={v => updateParam('filletRadius', v)} />
                     </>
                   )}
                 </div>
