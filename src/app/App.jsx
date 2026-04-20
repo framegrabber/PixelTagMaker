@@ -297,9 +297,16 @@ export default function App() {
           <h1 className="logo">Pixel<span>Tag</span>Maker</h1>
         </div>
         <div className="header-actions">
-          <button className="btn btn-ghost" onClick={handleModeSwitch}>
-            {mode === 'keyring' ? 'Keyring' : 'Coaster'}
-          </button>
+          <div className="mode-toggle">
+            <button
+              className={`mode-toggle__btn${mode === 'keyring' ? ' active' : ''}`}
+              onClick={() => mode !== 'keyring' && handleModeSwitch()}
+            >Keyring</button>
+            <button
+              className={`mode-toggle__btn${mode === 'coaster' ? ' active' : ''}`}
+              onClick={() => mode !== 'coaster' && handleModeSwitch()}
+            >Coaster</button>
+          </div>
           <button className="btn btn-ghost" onClick={handleOpen}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5z" />

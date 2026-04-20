@@ -163,6 +163,39 @@ body {
   border-color: var(--border);
 }
 
+/* ── Mode toggle (segmented control) ───────────────────────── */
+.mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mode-toggle__btn {
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.mode-toggle__btn.active {
+  background: var(--accent);
+  color: #1a1408;
+  font-weight: 600;
+}
+
+.mode-toggle__btn:hover:not(.active) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
 .btn-accent {
   background: var(--accent);
   border-color: var(--accent);
