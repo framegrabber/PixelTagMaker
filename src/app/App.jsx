@@ -379,6 +379,9 @@ export default function App() {
                     {ch.name}
                   </span>
                 )}
+                <span className={`char-mode-badge char-mode-badge--${ch.mode ?? 'keyring'}`}>
+                  {(ch.mode ?? 'keyring') === 'coaster' ? 'C' : 'K'}
+                </span>
                 <span className="char-dims">{ch.grid[0]?.length}&times;{ch.grid.length}</span>
                 {characters.length > 1 && (
                   <button

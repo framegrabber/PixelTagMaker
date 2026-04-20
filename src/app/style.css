@@ -372,6 +372,25 @@ body {
   flex-shrink: 0;
 }
 
+.char-mode-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.char-mode-badge--keyring {
+  background: rgba(76, 194, 255, 0.12);
+  color: var(--cyan);
+}
+
+.char-mode-badge--coaster {
+  background: rgba(232, 167, 53, 0.12);
+  color: var(--accent);
+}
+
 .char-del {
   opacity: 0;
   background: none;
