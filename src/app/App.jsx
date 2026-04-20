@@ -3,6 +3,7 @@ import GridEditor, { makeGrid } from './GridEditor'
 import Viewer from './Viewer'
 import ExportButton from './ExportButton'
 import { generateMesh } from '../core/generator'
+import { generateCoaster } from '../core/coasterGenerator'
 import { getManifold } from '../core/manifold'
 import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import { colorForCharacter } from '../core/colorUtils'
@@ -158,7 +159,7 @@ export default function App() {
       if (id !== genCounter.current) return
       setGenerating(true)
       try {
-        const result = await generateMesh(grid, params)
+        const result = await (mode === 'coaster' ? generateCoaster(grid, params) : generateMesh(grid, params))
         if (id !== genCounter.current) return
         const old = geometriesRef.current
         old.raised?.dispose()
@@ -181,7 +182,7 @@ export default function App() {
     }, 300)
 
     return () => clearTimeout(genTimer.current)
-  }, [grid, params, wasmReady])
+  }, [grid, params, wasmReady, mode])
 
   // Sync grid changes back to character list
   const handleGridChange = useCallback((updater) => {
