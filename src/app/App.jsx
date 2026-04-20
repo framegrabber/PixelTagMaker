@@ -8,7 +8,8 @@ import { openJsonFile, saveJsonFile } from '../core/fileIO'
 import { colorForCharacter } from '../core/colorUtils'
 import defaultLib from '../core/defaultCharacters.json'
 
-const DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
+const KEYRING_DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
+const COASTER_DEFAULT_PARAMS = { pixelSize: 6, pixelHeight: 1, thickness: 4, chamfer: 0.3, recessDiameter: 70, recessDepth: 1.5, filletRadius: 3 }
 
 function encodeShare(name, grid, params) {
   const payload = JSON.stringify({ name, grid, params })
@@ -31,7 +32,8 @@ export default function App() {
   const [characters, setCharacters] = useState(defaultLib.characters)
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [grid, setGrid] = useState(defaultLib.characters[0].grid)
-  const [params, setParams] = useState(DEFAULT_PARAMS)
+  const [mode, setMode] = useState('keyring')
+  const [params, setParams] = useState(KEYRING_DEFAULT_PARAMS)
   const [showSettings, setShowSettings] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -49,6 +51,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [splitPct, setSplitPct] = useState(45)
   const workspaceRef = useRef(null)
+
+  function handleModeSwitch() {
+    setMode(prev => {
+      const next = prev === 'keyring' ? 'coaster' : 'keyring'
+      setParams(next === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
+      return next
+    })
+  }
 
   // Minimum editor width driven by grid column count:
   //   ge-grid: cols*32px cells + (cols-1)*1px gaps + 2*2px border
@@ -266,6 +276,9 @@ export default function App() {
           <h1 className="logo">Pixel<span>Tag</span>Maker</h1>
         </div>
         <div className="header-actions">
+          <button className="btn btn-ghost" onClick={handleModeSwitch}>
+            {mode === 'keyring' ? 'Keyring' : 'Coaster'}
+          </button>
           <button className="btn btn-ghost" onClick={handleOpen}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5z" />
@@ -366,6 +379,7 @@ export default function App() {
               onGridChange={handleGridChange}
               raisedColor={characterColors.raised}
               flatColor={characterColors.flat}
+              mode={mode}
             />
 
             {/* Settings */}
