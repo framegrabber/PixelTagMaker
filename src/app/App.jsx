@@ -399,7 +399,16 @@ export default function App() {
                   <ParamSlider label="Pixel height" unit="mm" value={params.pixelHeight} min={0.5} max={5} step={0.25} onChange={v => updateParam('pixelHeight', v)} />
                   <ParamSlider label="Thickness" unit="mm" value={params.thickness} min={1} max={5} step={0.25} onChange={v => updateParam('thickness', v)} />
                   <ParamSlider label="Chamfer" unit="mm" value={params.chamfer} min={0} max={1} step={0.05} onChange={v => updateParam('chamfer', v)} />
-                  <ParamSlider label="Hole size" unit="mm" value={params.holeSize} min={0.5} max={params.pixelSize * 1.8} step={0.1} onChange={v => updateParam('holeSize', v)} />
+                  {mode === 'keyring' && (
+                    <ParamSlider label="Hole size" unit="mm" value={params.holeSize} min={0.5} max={params.pixelSize * 1.8} step={0.1} onChange={v => updateParam('holeSize', v)} />
+                  )}
+                  {mode === 'coaster' && (
+                    <>
+                      <ParamSlider label="Recess diameter" unit="mm" value={params.recessDiameter} min={40} max={100} step={1} onChange={v => updateParam('recessDiameter', v)} />
+                      <ParamSlider label="Recess depth" unit="mm" value={params.recessDepth} min={0.5} max={4} step={0.1} onChange={v => updateParam('recessDepth', v)} />
+                      <ParamSlider label="Fillet radius" unit="mm" value={params.filletRadius} min={1} max={8} step={0.1} onChange={v => updateParam('filletRadius', v)} />
+                    </>
+                  )}
                 </div>
               )}
             </div>
