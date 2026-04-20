@@ -33,7 +33,7 @@ export default function App() {
   const [characters, setCharacters] = useState(defaultLib.characters)
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [grid, setGrid] = useState(defaultLib.characters[0].grid)
-  const [mode, setMode] = useState('keyring')
+  const [mode, setMode] = useState(defaultLib.characters[0]?.mode ?? 'keyring')
   const [params, setParams] = useState(KEYRING_DEFAULT_PARAMS)
   const [showSettings, setShowSettings] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -54,12 +54,13 @@ export default function App() {
   const workspaceRef = useRef(null)
 
   function handleModeSwitch() {
+    const currentIdx = selectedIdx
     setMode(prev => {
       const next = prev === 'keyring' ? 'coaster' : 'keyring'
       setParams(next === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
       setCharacters(chars => {
         const copy = [...chars]
-        copy[selectedIdx] = { ...copy[selectedIdx], mode: next }
+        copy[currentIdx] = { ...copy[currentIdx], mode: next }
         return copy
       })
       return next
