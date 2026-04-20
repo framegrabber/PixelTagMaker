@@ -37,6 +37,7 @@ logs
 **/*.backup.*
 **/*.back.*
 
+.superpowers/
 node_modules
 bower_components
 dist
