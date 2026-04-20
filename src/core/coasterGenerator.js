@@ -126,10 +126,12 @@ export async function generateCoaster(grid, params) {
   const cx = originX + bboxW / 2 + recessOffsetX
   const cy = originY + bboxH / 2 + recessOffsetY
 
-  // Base tiles: one ps×ps×thickness block per non-empty pixel
-  // Raised art: chamfered block of pixelHeight placed atop each type-1 pixel
+  // Type-1 pixels: single full-height block (Z=0→totalHeight), same as keyring mode.
+  //   Avoids coplanar face issues when a separate base tile + thin raised slab share Z=thickness.
+  // Type-2 pixels: base tile only (Z=0→thickness).
   const baseTiles = []
   const raisedArt = []
+  const totalHeight = thickness + pixelHeight
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -137,11 +139,12 @@ export async function generateCoaster(grid, params) {
       if (val === 0 || val > 2) continue
       const x = c * ps
       const y = (rows - 1 - r) * ps
-      baseTiles.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
       if (val === 1) {
         raisedArt.push(
-          createChamferedBlock(Manifold, ps, pixelHeight, chamfer).translate([x, y, thickness])
+          createChamferedBlock(Manifold, ps, totalHeight, chamfer).translate([x, y, 0])
         )
+      } else {
+        baseTiles.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
       }
     }
   }
