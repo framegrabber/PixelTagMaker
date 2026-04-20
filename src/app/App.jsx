@@ -12,8 +12,8 @@ import defaultLib from '../core/defaultCharacters.json'
 const KEYRING_DEFAULT_PARAMS = { pixelSize: 4, pixelHeight: 0.5, thickness: 2, chamfer: 0.2, holeSize: 2 }
 const COASTER_DEFAULT_PARAMS = { pixelSize: 8, pixelHeight: 1, thickness: 4, chamfer: 0.3, recessDiameter: 70, recessDepth: 1.5, recessOffsetX: 0, recessOffsetY: 0 }
 
-function encodeShare(name, grid, params) {
-  const payload = JSON.stringify({ name, grid, params })
+function encodeShare(name, grid, params, mode) {
+  const payload = JSON.stringify({ name, grid, params, mode })
   // btoa needs binary string; handle unicode via encodeURIComponent
   const b64 = btoa(encodeURIComponent(payload))
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
@@ -57,6 +57,11 @@ export default function App() {
     setMode(prev => {
       const next = prev === 'keyring' ? 'coaster' : 'keyring'
       setParams(next === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
+      setCharacters(chars => {
+        const copy = [...chars]
+        copy[selectedIdx] = { ...copy[selectedIdx], mode: next }
+        return copy
+      })
       return next
     })
   }
@@ -136,13 +141,14 @@ export default function App() {
     const data = decodeShare(encoded)
     if (!data?.grid) return
     const newIdx = defaultLib.characters.length  // append after defaults
+    const sharedMode = data.mode ?? 'keyring'
     setCharacters(prev => {
-      // avoid duplicates if already loaded
       if (prev.some(c => c.name === data.name && JSON.stringify(c.grid) === JSON.stringify(data.grid))) return prev
-      return [...prev, { name: data.name || 'shared', grid: data.grid }]
+      return [...prev, { name: data.name || 'shared', grid: data.grid, mode: sharedMode }]
     })
     setSelectedIdx(characters.length)
     setGrid(data.grid)
+    setMode(sharedMode)
     if (data.params) setParams(prev => ({ ...prev, ...data.params }))
     // Clean URL
     window.history.replaceState({}, '', window.location.pathname)
@@ -198,13 +204,19 @@ export default function App() {
   }, [selectedIdx])
 
   function selectCharacter(idx) {
+    const ch = characters[idx]
     setSelectedIdx(idx)
-    setGrid(characters[idx].grid)
+    setGrid(ch.grid)
+    const chMode = ch.mode ?? 'keyring'
+    if (chMode !== mode) {
+      setMode(chMode)
+      setParams(chMode === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
+    }
   }
 
   function addCharacter() {
     const newIdx = characters.length
-    const newChar = { name: 'untitled', grid: makeGrid(8, 8) }
+    const newChar = { name: 'untitled', grid: makeGrid(8, 8), mode }
     setCharacters(prev => [...prev, newChar])
     setSelectedIdx(newIdx)
     setGrid(newChar.grid)
@@ -218,6 +230,11 @@ export default function App() {
     const newIdx = Math.min(idx, next.length - 1)
     setSelectedIdx(newIdx)
     setGrid(next[newIdx].grid)
+    const nextMode = next[newIdx].mode ?? 'keyring'
+    if (nextMode !== mode) {
+      setMode(nextMode)
+      setParams(nextMode === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
+    }
   }
 
   function renameCharacter(idx, name) {
@@ -237,6 +254,9 @@ export default function App() {
         setCharacters(data.characters)
         setSelectedIdx(0)
         setGrid(data.characters[0].grid)
+        const firstMode = data.characters[0].mode ?? 'keyring'
+        setMode(firstMode)
+        setParams(firstMode === 'coaster' ? COASTER_DEFAULT_PARAMS : KEYRING_DEFAULT_PARAMS)
       }
     } catch (err) {
       if (err.name !== 'AbortError') console.error('Open failed:', err)
@@ -257,7 +277,7 @@ export default function App() {
   }
 
   async function handleShare() {
-    const encoded = encodeShare(selected?.name || 'untitled', grid, params)
+    const encoded = encodeShare(selected?.name || 'untitled', grid, params, mode)
     const url = `${window.location.origin}${window.location.pathname}?share=${encoded}`
     window.history.replaceState({}, '', `?share=${encoded}`)
     try {
