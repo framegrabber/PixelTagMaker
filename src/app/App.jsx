@@ -146,7 +146,7 @@ export default function App() {
       if (prev.some(c => c.name === data.name && JSON.stringify(c.grid) === JSON.stringify(data.grid))) return prev
       return [...prev, { name: data.name || 'shared', grid: data.grid, mode: sharedMode }]
     })
-    setSelectedIdx(characters.length)
+    setSelectedIdx(newIdx)
     setGrid(data.grid)
     setMode(sharedMode)
     if (data.params) setParams(prev => ({ ...prev, ...data.params }))
