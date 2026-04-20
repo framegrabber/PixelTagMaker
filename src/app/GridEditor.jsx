@@ -24,9 +24,13 @@ function getBoundingBox(grid) {
   return { minR, maxR, minC, maxC }
 }
 
-export default function GridEditor({ grid, onGridChange, raisedColor, flatColor }) {
+export default function GridEditor({ grid, onGridChange, raisedColor, flatColor, mode = 'keyring' }) {
   const [activeType, setActiveType] = useState(1)
   const [hoverCell, setHoverCell] = useState(null)
+
+  useEffect(() => {
+    if (mode === 'coaster' && activeType > 2) setActiveType(1)
+  }, [mode])
   const painting = useRef(false)
   const paintType = useRef(1)
 
@@ -134,15 +138,16 @@ export default function GridEditor({ grid, onGridChange, raisedColor, flatColor 
     })
   }, [onGridChange])
 
-  // Hotkeys 1-5
+  // Hotkeys 0-4
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if (e.key >= '1' && e.key <= '5') setActiveType(+e.key - 1)
+      const maxKey = mode === 'coaster' ? '2' : '4'
+      if (e.key >= '0' && e.key <= maxKey) setActiveType(+e.key)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [mode])
 
   // Clear hover when switching away from type 4
   useEffect(() => {
@@ -234,7 +239,7 @@ export default function GridEditor({ grid, onGridChange, raisedColor, flatColor 
 
       {/* Palette */}
       <div className="ge-palette">
-        {PIXEL_TYPES.map(pt => {
+        {PIXEL_TYPES.filter(pt => mode === 'coaster' ? pt.value <= 2 : true).map(pt => {
           const swatchColor = pt.value === 1 ? (raisedColor || pt.color)
             : pt.value === 2 ? (flatColor || pt.color)
             : pt.color
@@ -252,7 +257,7 @@ export default function GridEditor({ grid, onGridChange, raisedColor, flatColor 
         })}
       </div>
 
-      <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 1–5 select type</p>
+      <p className="ge-hint">Click to paint &middot; Right-click to erase &middot; Keys 0–{mode === 'coaster' ? '2' : '4'} select type</p>
     </div>
   )
 }
