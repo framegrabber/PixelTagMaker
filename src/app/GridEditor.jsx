@@ -29,7 +29,7 @@ export default function GridEditor({ grid, onGridChange, raisedColor, flatColor,
   const [hoverCell, setHoverCell] = useState(null)
 
   useEffect(() => {
-    if (mode === 'coaster' && activeType > 2) setActiveType(1)
+    if (mode === 'coaster') setActiveType(prev => prev > 2 ? 1 : prev)
   }, [mode])
   const painting = useRef(false)
   const paintType = useRef(1)
