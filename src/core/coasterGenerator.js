@@ -124,7 +124,7 @@ export async function generateCoaster(grid, params) {
   const originX = minC * ps
   const originY = (rows - 1 - maxR) * ps
   const cx = originX + bboxW / 2 + recessOffsetX
-  const cy = originY + bboxH / 2 + recessOffsetY
+  const cy = originY + bboxH / 2 - recessOffsetY
 
   // Type-1 pixels: single full-height block (Z=0→totalHeight), same as keyring mode.
   //   Avoids coplanar face issues when a separate base tile + thin raised slab share Z=thickness.

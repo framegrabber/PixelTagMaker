@@ -438,8 +438,8 @@ export default function App() {
                     <>
                       <ParamSlider label="Recess diameter" unit="mm" value={params.recessDiameter} min={40} max={100} step={1} onChange={v => updateParam('recessDiameter', v)} />
                       <ParamSlider label="Recess depth" unit="mm" value={params.recessDepth} min={0.5} max={4} step={0.1} onChange={v => updateParam('recessDepth', v)} />
-                      <ParamSlider label="Recess left/right" unit="mm" value={params.recessOffsetX ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetX', v)} />
-                      <ParamSlider label="Recess up/down" unit="mm" value={params.recessOffsetY ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetY', v)} />
+                      <ParamSlider label="Recess left/right" unit="mm" value={params.recessOffsetX ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetX', v)} onReset={() => updateParam('recessOffsetX', 0)} />
+                      <ParamSlider label="Recess up/down" unit="mm" value={params.recessOffsetY ?? 0} min={-20} max={20} step={1} onChange={v => updateParam('recessOffsetY', v)} onReset={() => updateParam('recessOffsetY', 0)} />
                     </>
                   )}
                 </div>
@@ -476,16 +476,54 @@ export default function App() {
   )
 }
 
-function ParamSlider({ label, unit, value, min, max, step, onChange }) {
+function ParamSlider({ label, unit, value, min, max, step, onChange, onReset }) {
+  const [draft, setDraft] = useState(String(value))
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setDraft(String(value))
+    }
+  }, [value])
+
+  function commitDraft(text) {
+    const parsed = parseFloat(text)
+    if (isNaN(parsed)) { setDraft(String(value)); return }
+    const clamped = Math.min(max, Math.max(min, parsed))
+    const snapped = Math.round(clamped / step) * step
+    const precision = String(step).includes('.') ? String(step).split('.')[1].length : 0
+    const final = parseFloat(snapped.toFixed(precision))
+    setDraft(String(final))
+    onChange(final)
+  }
+
   return (
-    <div className="param-row">
+    <div className={`param-row${onReset ? ' param-row--with-reset' : ''}`}>
       <label className="param-label">{label}</label>
       <input
         type="range" className="param-range"
         min={min} max={max} step={step} value={value}
-        onChange={e => onChange(+e.target.value)}
+        onChange={e => { const v = +e.target.value; setDraft(String(v)); onChange(v) }}
       />
-      <span className="param-value">{value}{unit}</span>
+      <input
+        ref={inputRef}
+        type="number" className="param-num-input"
+        value={draft} min={min} max={max} step={step}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={e => commitDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { commitDraft(e.target.value); e.target.blur() }
+          if (e.key === 'Escape') { setDraft(String(value)); e.target.blur() }
+        }}
+      />
+      {onReset && (
+        <button className="param-reset-btn" onClick={() => { onChange(0); setDraft('0') }} title="Reset to 0" tabIndex={-1}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
