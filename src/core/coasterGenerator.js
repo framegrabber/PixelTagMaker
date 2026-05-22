@@ -126,12 +126,13 @@ export async function generateCoaster(grid, params) {
   const cx = originX + bboxW / 2 + recessOffsetX
   const cy = originY + bboxH / 2 - recessOffsetY
 
-  // Type-1 pixels: single full-height block (Z=0→totalHeight), same as keyring mode.
-  //   Avoids coplanar face issues when a separate base tile + thin raised slab share Z=thickness.
-  // Type-2 pixels: base tile only (Z=0→thickness).
+  // Every non-empty pixel gets a base tile (Z=0→thickness) — its top corner picks up
+  // the filleted recess. Type-1 pixels additionally get a chamfered slab on top
+  // (Z=thickness→thickness+pixelHeight) which is cut at outerRadius (no fillet on top).
+  // Coplanar z=thickness faces between base tile and slab are handled at render time
+  // via polygonOffset on the flat material (see Viewer.jsx).
   const baseTiles = []
   const raisedArt = []
-  const totalHeight = thickness + pixelHeight
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -139,12 +140,11 @@ export async function generateCoaster(grid, params) {
       if (val === 0 || val > 2) continue
       const x = c * ps
       const y = (rows - 1 - r) * ps
+      baseTiles.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
       if (val === 1) {
         raisedArt.push(
-          createChamferedBlock(Manifold, ps, totalHeight, chamfer).translate([x, y, 0])
+          createChamferedBlock(Manifold, ps, pixelHeight, chamfer).translate([x, y, thickness])
         )
-      } else {
-        baseTiles.push(Manifold.cube([ps, ps, thickness]).translate([x, y, 0]))
       }
     }
   }

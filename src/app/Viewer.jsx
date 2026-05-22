@@ -103,14 +103,23 @@ export default function Viewer({ raisedGeometry, flatGeometry, raisedColor = '#4
       return
     }
 
-    const makeMat = (color) => new THREE.MeshStandardMaterial({ color, metalness: 0.0, roughness: 0.65 })
+    const makeMat = (color, offset = false) => new THREE.MeshStandardMaterial({
+      color,
+      metalness: 0.0,
+      roughness: 0.65,
+      // Push flat geometry slightly back in depth tests so raised slabs win at
+      // coplanar boundaries (slab bottom @ z=thickness == base tile top).
+      polygonOffset: offset,
+      polygonOffsetFactor: offset ? 1 : 0,
+      polygonOffsetUnits: offset ? 1 : 0,
+    })
 
     if (raisedGeometry) {
       raisedMeshRef.current = new THREE.Mesh(raisedGeometry, makeMat(raisedColor))
       ctx.scene.add(raisedMeshRef.current)
     }
     if (flatGeometry) {
-      flatMeshRef.current = new THREE.Mesh(flatGeometry, makeMat(flatColor))
+      flatMeshRef.current = new THREE.Mesh(flatGeometry, makeMat(flatColor, true))
       ctx.scene.add(flatMeshRef.current)
     }
 
